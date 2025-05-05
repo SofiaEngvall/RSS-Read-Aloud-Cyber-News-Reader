@@ -7,7 +7,7 @@
 # pip install espeakng
 
 
-from espeakng import ESpeakNG
+from espeakng import Speaker as ESpeakNG
 
 VOICE = "en-us+m3"  # Example: male voice 3, you can list more via espeak
 SPEED = 150  # Words per minute

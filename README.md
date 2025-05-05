@@ -6,6 +6,7 @@ version 1.0<br/>
 by Sofia Engvall - FixIt42, 2025-05-04<br/>
 <br/>
 This script fetches articles from a list of RSS feeds, summarizes them using AI (Ollama), and reads them aloud.<br/>
+# Linux version doesn't work yet! Working on it :)
 <br/>
 It uses these libraries:
 <br/>
@@ -44,13 +45,48 @@ The script is designed to be run in a terminal but as most output is spoken, it 
 
 ### Installation
 
+Clone the repo = Download the files:
 ```sh
 git clone https://github.com/SofiaEngvall/RSS-Read-Aloud-Cyber-News-Reader.git
 ```
 
+Install libraries on Windows:
 ```sh
 pip install -r requirements.txt
 ```
+
+Install libraries on Linux:
+```sh
+pip3 install -r requirements.txt
+```
+
+### To run in a virtual envirunment
+
+Install
+```sh
+sudo apt install pypy3-venv
+python3 -m venv .
+```
+
+Start
+```sh
+source bin/activate
+```
+
+Stop
+```sh
+deactivate
+```
+
+For details:<br/>
+https://www.fixit42.com/notes/programming/python/python-course/the-python-virtual-environment.html
+
+### Install espeak for Linux TTS
+
+```sh
+sudo apt install espeak espeak-ng portaudio19-dev
+```
+
 
 
 ### Settings
