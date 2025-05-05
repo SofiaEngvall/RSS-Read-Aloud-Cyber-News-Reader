@@ -9,25 +9,36 @@ This script fetches articles from a list of RSS feeds, summarizes them using AI 
 <br/>
 It uses these libraries:
 <br/>
+
 - `os` to get terminal size
 - `subprocess` to start Ollama
 - `sys` to find the python executable running this script to use when installing ms playwright
+
 <br/>
+
 - `time` and `datetime` to manage time and timezones
 - `dateutil.parser` to parse dates
+
 <br/>
+
 - `feedparser` to parse RSS feeds
 - `requests` to download articles
 - `playwright` to bypass restrictions on some webpages
 - `webbrowser` to open links in a browser
 - `readability-lxml` (and `lxml_html_clean`) to extract the main content from webpages
 - `BeautifulSoup` to convert HTML to plain text
+
 <br/>
+
 - `ollama` for AI summarization
+
 <br/>
+
 - `speaker` and `listener` modules for text-to-speech and speech recognition
   (These modules will be available in the same directory as this script.)
+
 <br/>
+
 The script is designed to be run in a terminal but as most output is spoken, it should work in a GUI as well.
 
 
