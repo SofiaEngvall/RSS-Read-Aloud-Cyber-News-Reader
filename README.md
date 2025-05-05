@@ -1,33 +1,33 @@
 # RSS Read Aloud for Cyber Security News
 
 
-rss-read-aloud.py - RSS feed reader with AI summarization
-version 1.0
-by Sofia Engvall - FixIt42, 2025-05-04
-
-This script fetches articles from a list of RSS feeds, summarizes them using AI (Ollama), and reads them aloud.
-
+rss-read-aloud.py - RSS feed reader with AI summarization<br/>
+version 1.0<br/>
+by Sofia Engvall - FixIt42, 2025-05-04<br/>
+<br/>
+This script fetches articles from a list of RSS feeds, summarizes them using AI (Ollama), and reads them aloud.<br/>
+<br/>
 It uses these libraries:
-
+<br/>
 - `os` to get terminal size
 - `subprocess` to start Ollama
 - `sys` to find the python executable running this script to use when installing ms playwright
-<br>
+<br/>
 - `time` and `datetime` to manage time and timezones
 - `dateutil.parser` to parse dates
-<br>
+<br/>
 - `feedparser` to parse RSS feeds
 - `requests` to download articles
 - `playwright` to bypass restrictions on some webpages
 - `webbrowser` to open links in a browser
 - `readability-lxml` (and `lxml_html_clean`) to extract the main content from webpages
 - `BeautifulSoup` to convert HTML to plain text
- <br>
+<br/>
 - `ollama` for AI summarization
- <br>
+<br/>
 - `speaker` and `listener` modules for text-to-speech and speech recognition
   (These modules will be available in the same directory as this script.)
-<br>
+<br/>
 The script is designed to be run in a terminal but as most output is spoken, it should work in a GUI as well.
 
 
@@ -43,15 +43,15 @@ pip install -r requirements.txt
 
 
 ### Settings
-use_ollama = True #If True, use Ollama for summarization. If False, just read the full articles, even if they are thousands of words long.<br>
-START_OLLAMA = True #If True, start Ollama if it is not running. If False, ask the user if they want to start it.<br>
-OLLAMA_PATH = "D:/ollama/ollama.exe" #The full path to the ollama executable file. Use double backslashes or single forward slashes.<br>
-DEFAULT_TTS_SPEED = 4 #The default speed of the text-to-speech voice. -10 to 10, where 0 is normal speed.<br>
-DEFAULT_STT_RETRIES = 0 # -1 = no question asked, 0 = ask once, 1 = retry once, 2 = retry twice, etc.<br>
-DEFAULT_ARTICLE_DAYS = 7 #How old articles to read, older ones are skipped<br>
-DEFAULT_ARTICLE_LENGTH = 400 #Default length of the long article summary. Articles 100 words longer are read in full.<br>
-ALWAYS_READ_LONG = True # if True, always read the long summary and will skip making a short summary<br>
-use_playwright = True #If true, use Microsoft Playwright to access anti-scraping web pages<br>
+- `use_ollama = True` If True, use Ollama for summarization. If False, just read the full articles, even if they are thousands of words long.
+- `START_OLLAMA = True` If True, start Ollama if it is not running. If False, ask the user if they want to start it.
+- `OLLAMA_PATH = "D:/ollama/ollama.exe"` The full path to the ollama executable file. Use double backslashes or single forward slashes.
+- `DEFAULT_TTS_SPEED = 4` The default speed of the text-to-speech voice. -10 to 10, where 0 is normal speed.
+- `DEFAULT_STT_RETRIES = 0`  -1 = no question asked, 0 = ask once, 1 = retry once, 2 = retry twice, etc.
+- `DEFAULT_ARTICLE_DAYS = 7` How old articles to read, older ones are skipped
+- `DEFAULT_ARTICLE_LENGTH = 400` Default length of the long article summary. Articles 100 words longer are read in full.
+- `ALWAYS_READ_LONG = True`  if True, always read the long summary and will skip making a short summary
+- `use_playwright = True` If true, use Microsoft Playwright to access anti-scraping web pages
 
 
 ### RSS feeds
