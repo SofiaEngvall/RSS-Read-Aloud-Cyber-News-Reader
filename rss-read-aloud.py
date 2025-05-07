@@ -18,7 +18,7 @@
 # 
 # - `feedparser` to parse RSS feeds
 # - `requests` to download articles
-# - `playwright` to bypass restrictions on some webpages
+# - `playwright` to bypass anti-scraping restrictions on some webpages
 # - `webbrowser` to open links in a browser
 # - `readability-lxml` (and `lxml_html_clean`) to extract the main content from webpages
 # - `BeautifulSoup` to convert HTML to plain text
@@ -291,7 +291,14 @@ def install_playwright():
     dash_line() #------------------------------------------
     if get_yes_no("\nMicrosoft Playwright is not installed. It is used to download articles from sites using anti-scraping. Do you want to install it (<200MB)?", "yes") == "yes":
         s.speak("Installing Playwright...")
-        subprocess.run([sys.executable, "-m", "playwright", "install", "--with-deps"], check=True)
+
+        try:
+            subprocess.run([sys.executable, "-m", "playwright", "install", "--with-deps"], check=True)
+        except subprocess.CalledProcessError:
+            print("\nPlaywright failed to install with dependencies on this system.")
+            print("Playwright is used to download articles from pages with anti-scraping restrictions.")
+            print("Manual install instructions: https://playwright.dev/python/docs/intro")
+            print("You can also try: python -m playwright install\n")
 
         if check_for_playwright():
             s.speak("Successfully installed Playwright.")
