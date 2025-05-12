@@ -83,10 +83,7 @@ https://www.fixit42.com/notes/programming/python/python-course/the-python-virtua
 
 ### Install espeak for Linux TTS
 
-old
-```sh
-sudo apt install espeak espeak-ng portaudio19-dev
-```
+Please observe that the Linus version uses gTTS which means it sends the article to goole for tts
 
 new
 ```sh
