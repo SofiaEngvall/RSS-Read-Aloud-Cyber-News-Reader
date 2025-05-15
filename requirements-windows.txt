@@ -1,0 +1,11 @@
+python-dateutil
+feedparser
+requests
+playwright
+readability-lxml
+lxml_html_clean
+beautifulsoup4
+ollama
+SpeechRecognition
+pyaudio
+pywin32
