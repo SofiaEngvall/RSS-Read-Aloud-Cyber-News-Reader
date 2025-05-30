@@ -42,7 +42,7 @@ class Speaker():
         if self.also_print:
             print(text)
         try:
-            tts = gTTS(text=text, lang=self.voice)
+            tts = gTTS(text=text, lang=self.voice, tld='us')
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
                 tts.save(fp.name)
                 # Use ffplay to play and apply speed control (matching Windows-like speed behavior)
