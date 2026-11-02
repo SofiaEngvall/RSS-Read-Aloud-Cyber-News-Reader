@@ -6,28 +6,7 @@
 # https://github.com/SofiaEngvall/RSS-Read-Aloud-Cyber-News-Reader.git
 
 # This script fetches articles from a list of RSS feeds, summarizes them using AI (Ollama), and reads them aloud.
-# 
-# It uses these libraries:
-# 
-# - `os` to get terminal size
-# - `subprocess` to start Ollama
-# - `sys` to find the python executable running this script to use when installing ms playwright
-# 
-# - `time` and `datetime` to manage time and timezones
-# - `dateutil.parser` to parse dates
-# 
-# - `feedparser` to parse RSS feeds
-# - `requests` to download articles
-# - `playwright` to bypass anti-scraping restrictions on some webpages
-# - `webbrowser` to open links in a browser
-# - `readability-lxml` (and `lxml_html_clean`) to extract the main content from webpages
-# - `BeautifulSoup` to convert HTML to plain text
-# 
-# - `ollama` for AI summarization
-# 
-# - `speaker` and `listener` modules for text-to-speech and speech recognition
-#   (These modules will be available in the same directory as this script.)
-# 
+# Library list in the README.md
 # The script is designed to be run in a terminal but as most output is spoken, it should work in a GUI as well.
 
 
@@ -42,7 +21,7 @@ from dateutil import parser
 
 import feedparser
 import requests
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError
 from webbrowser import open_new_tab
 from readability import Document
 from bs4 import BeautifulSoup
@@ -51,6 +30,7 @@ import ollama
 
 import speaker
 import listener
+from rss_feed_list import rss_feeds
 
 
 # TODO! Features to add!
@@ -61,6 +41,7 @@ import listener
 #   - Ollama path
 #   - Article length
 #   - Article days
+#   - The main article - makes it possible to later search articles! Also useful for multi-user
 # - Possible add command line options to set these values, overriding both the defaults in the script and the saved options
 # - Make a database of articles
 # - Make a database for the RSS feeds, or just add more fields to the list
@@ -74,102 +55,30 @@ use_ollama = True #If True, use Ollama for summarization. If False, just read th
 START_OLLAMA = True #If True, start Ollama if it is not running. If False, ask the user if they want to start it.
 #OLLAMA_PATH = "/opt/ollama/bin/ollama" #The full path to the ollama executable file. Use double backslashes or single forward slashes.
 OLLAMA_PATH = "d:/ollama/ollama.exe" #The full path to the ollama executable file. Use double backslashes or single forward slashes.
-DEFAULT_TTS_SPEED = 4 #The default speed of the text-to-speech voice. -10 to 10, where 0 is normal speed.
-DEFAULT_STT_RETRIES = 0 # -1 = no question asked, 0 = ask once, 1 = retry once, 2 = retry twice, etc.
+DEFAULT_TTS_SPEED = 2 #4 #The default speed of the text-to-speech voice. -10 to 10, where 0 is normal speed.
+DEFAULT_STT_RETRIES = -1 # -1 = no question asked, 0 = ask once, 1 = retry once, 2 = retry twice, etc. -1 is useful if you don't have a mic.
 DEFAULT_ARTICLE_DAYS = 7 #How old articles to read, older ones are skipped
-DEFAULT_ARTICLE_LENGTH = 200 #Default length of the long article summary. Articles 100 words longer are read in full.
+#GIVE_UP_AFTER_N_OLD = 3 # TODO!
+#old_articles = 0
+DEFAULT_ARTICLE_LENGTH = 500 #Default length of the long article summary. Articles 100 words longer are read in full.
 ALWAYS_READ_LONG = True # if True, always read the long summary and will skip making a short summary
-use_playwright = False #If true, use Microsoft Playwright to access anti-scraping web pages
+use_playwright = True #If true, use Microsoft Playwright to access anti-scraping web pages
 
+# ### File store settings and variables
+# use_file_store = True
+# FILE_STORE_PATH = "d:/articles/"
 
-### RSS feeds - Please tell me if you have more feeds to add something is incorrect or missing so I can fix it!
-### The list was refined and formatted with the help of AI so please tell me errors I missed, like a bad description.
-### Format: (name, description, category, feed_url, site_url, status, rating)
-### Status: "{overall_status} | link={link_quality} | content={content_type} | desc={desc_quality}"
-
-
-rss_feeds = [
-    # =====================
-    # 🚨 Time-Critical Alerts
-    # =====================
-    ("Krebs on Security", "Investigative security journalism", "alerts", "https://krebsonsecurity.com/feed/", "https://krebsonsecurity.com", "ok | link=direct | content=full_html | desc=partial", 10),
-    #("SANS Internet Storm Center", "Daily threat intelligence", "alerts", "https://isc.sans.edu/rssfeed_full.xml", "https://isc.sans.edu", "ok | link=direct | content=rss_only | desc=full", 9),
-    ("The Hacker News", "Breaking cybersecurity news", "alerts", "https://feeds.feedburner.com/TheHackersNews?format=xml", "https://thehackernews.com", "ok | link=redirects | content=full_html | desc=partial", 9),
-    ("Dark Reading", "Urgent security news", "alerts", "https://www.darkreading.com/rss.xml", "https://www.darkreading.com", "playwright | link=direct | content=anti_scraping | desc=partial", 9),
-    ("BleepingComputer", "Ransomware tracking", "alerts", "https://www.bleepingcomputer.com/feed/", "https://www.bleepingcomputer.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ##("Threatpost", "Vulnerability disclosures", "alerts", "https://threatpost.com/feed/", "https://threatpost.com", "outdated | link=direct | content=full_html | desc=partial", 8),
-    ("CyberScoop", "Policy and breach alerts", "alerts", "https://www.cyberscoop.com/feed/", "https://www.cyberscoop.com", "ok | link=direct | content=full_html | desc=partial", 7),
-    ("NCSC News", "UK National Cyber Security Centre alerts", "alerts", "https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml", "https://www.ncsc.gov.uk/news", "playwright | link=direct | content=js_required | desc=full", 5),
-
-    # =====================
-    # 📰 General News
-    # =====================
-    ("Help Net Security", "Security news", "news", "https://www.helpnetsecurity.com/feed/", "https://www.helpnetsecurity.com", "ok | link=direct | content=full_html | desc=partial", 7),
-    ("Schneier on Security", "Security policy analysis", "news", "https://www.schneier.com/feed/atom/", "https://www.schneier.com", "ok | link=direct | content=full_html | desc=partial", 9),
-    #***FIX***("SecurityWeek", "Enterprise security news", "news", "https://www.securityweek.com/rss", "https://www.securityweek.com", "playwright | link=direct 403 | content=full_html | desc=partial", 7),
-    ("ZDNet Security", "Technology security news", "news", "https://www.zdnet.com/topic/security/rss.xml", "https://www.zdnet.com/security/", "ok | link=direct | content=full_html | desc=partial", 7),
-    ("Infosecurity Magazine", "Cybersecurity news", "news", "https://www.infosecurity-magazine.com/rss/news/", "https://www.infosecurity-magazine.com", "ok | link=direct | content=full_html | desc=partial", 7),
-
-    # =====================
-    # 🔥 Advanced Threat Intel
-    # =====================
-    ("Citizen Lab", "Spyware and disinformation research", "threat_intel", "https://citizenlab.ca/feed/", "https://citizenlab.ca", "ok | link=direct | content=full_html | desc=full", 10),
-    ("Project Zero", "Zero-day vulnerability research", "threat_intel", "http://googleprojectzero.blogspot.com/feeds/posts/default", "https://googleprojectzero.blogspot.com", "ok | link=direct | content=full_html | desc=full", 10),
-    ("Mandiant Blog", "APT group analysis", "threat_intel", "https://www.mandiant.com/resources/blog/rss.xml", "https://www.mandiant.com/resources/blog", "ok | link=direct | content=full_html | desc=full", 9),
-    ("Talos Intel", "Threat reports from Cisco", "threat_intel", "https://blog.talosintelligence.com/feeds/posts/default", "https://blog.talosintelligence.com", "ok | link=direct | content=full_html | desc=full", 9),
-    ("Kaspersky Securelist", "Malware deep dives", "threat_intel", "https://securelist.com/feed/", "https://securelist.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Unit42 (Palo Alto)", "Threat intelligence", "threat_intel", "https://unit42.paloaltonetworks.com/feed/", "https://unit42.paloaltonetworks.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ("WeLiveSecurity", "Malware trends from ESET", "threat_intel", "https://feeds.feedburner.com/eset/blog", "https://www.welivesecurity.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ("FireEye Threat Research", "APT analysis", "threat_intel", "https://www.fireeye.com/blog/threat-research/_jcr_content.feed", "https://www.fireeye.com/blog/threat-research", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Check Point Research", "Emerging threats", "threat_intel", "https://research.checkpoint.com/feed/", "https://research.checkpoint.com/", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Recorded Future", "Threat intelligence platform", "threat_intel", "https://www.recordedfuture.com/feed", "https://www.recordedfuture.com", "ok | link=direct | content=full_html | desc=partial", 7),
-    ("PT SWARM", "APT research", "threat_intel", "https://swarm.ptsecurity.com/feed/", "https://swarm.ptsecurity.com", "empty? | link=direct | content=full_html | desc=full", 7),
-    ("Keen Security Lab (Tencent)", "Advanced vulnerability research", "threat_intel", "https://little-canada.org/feeds/output/tencent-keenlabs.rss", "https://keenlab.tencent.com/en/", "outdated | link=direct | content=full_html | desc=full", 7),
-
-    # =====================
-    # 🛠️ Exploit Development
-    # =====================
-    ("PortSwigger Research", "Web application exploits", "exploit_dev", "https://portswigger.net/research/rss", "https://portswigger.net/research", "ok | link=direct | content=full_html | desc=full", 9),
-    ("Project Zero Bug Tracker", "Zero-day exploit database", "exploit_dev", "https://little-canada.org/feeds/output/projectzero-bugs.rss", "https://bugs.chromium.org/p/project-zero", "ok | link=direct | content=full_html | desc=none", 9),
-    ##("STÖK's Blog", "Bug bounty techniques", "exploit_dev", "https://stokfredrik.com/rss.xml", "https://stokfredrik.com", "404 | link=direct | content=full_html | desc=full", 8),
-    ##("Diary of a Reverse-Engineer", "Reverse engineering techniques", "exploit_dev", "https://doar-e.github.io/feeds/rss.xml", "https://doar-e.github.io/", "outdated 2023 | link=direct | content=full_html | desc=full", 8),
-    ("Hexacorn", "Malware analysis tricks", "exploit_dev", "https://www.hexacorn.com/blog/feed/", "https://www.hexacorn.com", "ok | link=direct | content=full_html | desc=full", 7),
-    ("Doyensec's Blog", "Application security", "exploit_dev", "https://blog.doyensec.com/atom.xml", "https://blog.doyensec.com/", "ok | link=direct | content=full_html | desc=full", 7),
-    ##("Access Vector", "Vulnerability research", "exploit_dev", "https://accessvector.net/rss.xml", "https://accessvector.net/", "ok 2024 | link=direct | content=full_html | desc=full", 7),
-    ("RET2 Systems Blog", "Exploit development", "exploit_dev", "https://blog.ret2.io/feed.xml", "https://blog.ret2.io/", "ok | link=direct | content=full_html | desc=full", 7),
-    ##("Gamozo Labs Blog", "Low-level exploitation", "exploit_dev", "https://gamozolabs.github.io/feed.xml", "https://gamozolabs.github.io/", "old 2021 | link=direct | content=full_html | desc=full", 7),
-
-    # =====================
-    # 🔴 Red Team & Offensive
-    # =====================
-    ("SpecterOps Blog", "Active Directory security", "red_team", "https://posts.specterops.io/feed", "https://posts.specterops.io", "ok | link=direct | content=full_html | desc=full", 9),
-    ("MDSec ActiveBreach", "Red team tradecraft", "red_team", "https://www.mdsec.co.uk/feed/", "https://www.mdsec.co.uk", "ok | link=direct | content=full_html | desc=full", 9),
-    ("Synacktiv | Publications", "Advanced exploitation", "red_team", "https://little-canada.org/feeds/output/synacktiv-publications.rss", "https://www.synacktiv.com/en/publications", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Rhino Security Labs", "Cloud red teaming", "red_team", "https://rhinosecuritylabs.com/feed/", "https://rhinosecuritylabs.com/", "ok | link=direct | content=full_html | desc=full", 7),
-    ("Elttam", "Red team research", "red_team", "https://little-canada.org/feeds/output/elttam.rss", "https://www.elttam.com/blog/", "empty | link=direct | content=full_html | desc=full", 7),
-
-    # =====================
-    # 🧠 Deep Dives & Education
-    # =====================
-    ("The DFIR Report", "Incident response case studies", "education", "https://thedfirreport.com/feed/", "https://thedfirreport.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Lenny Zeltser's Blog", "Malware analysis guides", "education", "https://zeltser.com/feed/", "https://zeltser.com", "ok | link=direct | content=full_html | desc=full", 7),
-    ("Windows Internals Blog", "OS security deep dives", "education", "https://windows-internals.com/feed/", "https://windows-internals.com", "ok | link=direct | content=full_html | desc=full", 7),
-    #***FIX***("Troy Hunt", "Security tutorials", "education", "https://www.troyhunt.com/rss/", "https://www.troyhunt.com", "ok | link=direct | content=full_html | desc=full", 8),
-    ("Trenchant", "Advanced research", "education", "http://little-canada.org/feeds/output/trenchant.rss", "https://trenchant.io/", "ok | link=direct | content=full_html | desc=full", 7),
-
-    # =====================
-    # 🎙️ Podcasts
-    # =====================
-    ("Darknet Diaries", "True cybercrime stories", "podcast", "https://feeds.megaphone.fm/darknetdiaries", "https://darknetdiaries.com", "ok | link=audio | content=episode_page | desc=full", 9),
-    ("Risky Business Podcast", "Weekly news roundup", "news", "https://risky.biz/feeds/risky-business/", "https://risky.biz", "ok | link=audio | content=episode_page | desc=full", 9),
-    ("Risky Business Podcast", "Weekly news analysis", "podcast", "https://risky.biz/feeds/risky-business/", "https://risky.biz", "ok | link=episode_page | content=show_notes | desc=full", 9),
-    #***FIX***("Security Now (TWIT)", "Deep-dive security podcast", "podcast", "https://feeds.twit.tv/sn.xml", "https://twit.tv/shows/security-now", "ok | link=audio | content=episode_page | desc=full", 8),
-    ("Graham Cluley", "Security podcast", "podcast", "https://grahamcluley.com/feed/", "https://grahamcluley.com", "ok | link=direct | content=full_html | desc=full", 7),
-]
-# New rss feeds:
-# https://www.wired.com/feed/category/security/latest/rss
-# https://malpedia.caad.fkie.fraunhofer.de/feeds/rss/latest
-
+# def init_file_store():
+#     if not os.path.isdir(FILE_STORE_PATH):
+#         try:
+#             os.mkdirs(FILE_STORE_PATH)
+#             print(f"File store created successfully.")
+#         except FileExistsError:
+#             print(f"File store already exists.")
+#         except PermissionError:
+#             print(f"Permission denied: Unable to create File store.")
+#         except Exception as e:
+#             print(f"An error occurred wgile creating file store: {e}")
 
 ### Headers for the requests - Used to mimic a real browser request and avoid being blocked
 headers = {
@@ -325,6 +234,11 @@ def print_info_n_check_if_old_or_read():
             s.speak(f"Published: {published_date.strftime('%Y-%m-%d')}")
             return False
         else: #old article - just print the info
+            #global old_articles
+            #old_articles += 1
+            #if old_articles >= GIVE_UP_AFTER_N_OLD:
+            #    pass
+            #    #TODO! Need to change the functionality of the main loop since this needs to continue two levels
             if "title" in entry:
                 print(f"Title: {entry.title}")
             print(f"Published: {published_date.strftime('%Y-%m-%d')}")
@@ -360,12 +274,15 @@ def download_article_playwright(url):
         )
         page = context.new_page()
 
-        page.goto(url,
-            timeout=60000,
-            #wait_until="domcontentloaded"
-            wait_until="networkidle",
-            #referer="https://www.google.com/"
-        )
+        try:
+            page.goto(url,
+                timeout=60000,
+                #wait_until="domcontentloaded"
+                wait_until="networkidle",
+                #referer="https://www.google.com/"
+            )
+        except TimeoutError:
+            return ""
 
         html = page.evaluate("""() => {
             // More robust hydration check
@@ -473,8 +390,10 @@ if __name__ == "__main__":
                 print(f"Link: {entry.link}")
 
                 if "playwright" not in rss_feed[5]:
+                    print("Trying to download article...")
                     article_html = download_article(entry.link)
                 elif "playwright" in rss_feed[5] and use_playwright:
+                    print("Trying to download article using playwright...")
                     article_html = download_article_playwright(entry.link)
                 else:
                     article_html = ""

@@ -13,9 +13,11 @@ s = speaker.Speaker()
 l = listener.Listener()
 
 while True:
-    #user_input = input("\nYou: ")
     user_input = l.listen()
-    print(f"You: {user_input}\n")
+    if user_input != "":
+        print(f"You: {user_input}\n")
+    else:
+        user_input = input("\nYou: ")
 
     if user_input.lower() == "exit":
         break

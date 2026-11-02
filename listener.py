@@ -23,7 +23,11 @@ class Listener():
             source.dynamic_energy_threshold = False
 
             print("Listening...")
-            audio = self.sr.listen(source)
+            try:
+                audio = self.sr.listen(source, timeout=5, phrase_time_limit=10)
+            except sr.exceptions.WaitTimeoutError:
+                self.s.speak("I couldn't hear a thing.")
+                audio = None
 
         if audio != None:
             print("Speech recognition in progress...")
@@ -37,6 +41,8 @@ class Listener():
             except sr.RequestError as error:
                 self.s.speak(
                     f"I couldn't reach google (error {error}).")
+        else:
+            text = ""
         return text
 
     def record(self):
